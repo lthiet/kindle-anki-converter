@@ -2,4 +2,5 @@ import requests
 import json
 import sys
 
-app_id = sys.arg
+cred = json.load("../data/credentials.json")
+print(cred)
