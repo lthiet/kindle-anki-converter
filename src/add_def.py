@@ -3,10 +3,9 @@ Read the vocabulary JSON file and update it with definitions
 """
 import requests
 import json
-import sys
 
 # Fetch credentials
-with open('../data/credentials.json', 'r') as f:
+with open('data/credentials.json', 'r') as f:
     cred = json.load(f)
 
 # Default language
@@ -36,7 +35,7 @@ def fetch_definition(word):
 
 
 # Read the words for which we will fetch the definition
-with open('../data/vocab.json', 'r') as f:
+with open('data/vocab.json', 'r') as f:
     vocab = json.load(f)
 
 
@@ -47,5 +46,5 @@ for word in vocab["stems"]:
 vocab["definitions"] = definitions
 
 # Write to disk
-with open('../data/vocab.json', 'w') as f:
+with open('data/vocab.json', 'w') as f:
     json.dump(vocab, f, indent=4)

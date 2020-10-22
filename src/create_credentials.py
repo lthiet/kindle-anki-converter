@@ -12,5 +12,5 @@ obj = {
     "app_id": app_id,
     "app_key": app_key
 }
-with open("../data/credentials.json", "w") as f:
+with open("data/credentials.json", "w") as f:
     json.dump(obj, f, indent=4)

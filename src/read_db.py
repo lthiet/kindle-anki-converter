@@ -9,7 +9,7 @@ Author: Lam
 """
 
 # Create a connection with vocabulary db
-conn = sqlite3.connect('../data/vocab.db')
+conn = sqlite3.connect('data/vocab.db')
 c = conn.cursor()
 
 # Select appropriate data
@@ -28,5 +28,5 @@ for row in db:
     export["usages"].append(row[1])
 
 # Write to DISK
-with open('../data/vocab.json', 'w') as f:
+with open('data/vocab.json', 'w') as f:
     json.dump(export, f, indent=4)
