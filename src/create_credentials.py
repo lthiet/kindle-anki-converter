@@ -1,3 +1,7 @@
+"""
+Read credentials from CLI and create a credentials json file
+Author: Lam
+"""
 import json
 import sys
 

@@ -1,3 +1,6 @@
+"""
+Read the vocabulary JSON file and update it with definitions
+"""
 import requests
 import json
 import sys
@@ -22,11 +25,14 @@ def fetch_definition(word):
     # Check if the API has returned an error
     try:
         result['error']
-        return []
+        return ''
     except KeyError:
         # TODO: look into the documentation of Oxford API to understand the
         # json structure
-        return result["results"][0]["lexicalEntries"][0]["entries"][0]["senses"][0]["definitions"]
+        # TODO: for now only the first definition is fetched, but it is a
+        # possibility that there are others, so it should be accounted for
+        # in a future update
+        return result["results"][0]["lexicalEntries"][0]["entries"][0]["senses"][0]["definitions"][0]
 
 
 # Read the words for which we will fetch the definition
