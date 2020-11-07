@@ -46,47 +46,22 @@ that contains lexical definitions for words is Required. The supported API is th
 ```
 $ mkdir data
 ```
-3. Copy the `vocab.db` file inside the `data` directory. **If your `vocab.db` file is located at the default location**, you can use this command. Replace `<user>` with the name of your user folder
+3. Simply run the script, provide the credentials as needed. 
 ```
-$ cp /media/<user>/Kindle/system/vocabulary/vocab.db data/
+$ python python main.py --appid <your app_id> --key <you app_key> --vocab <path_to_vocab.db>
 ```
-4. Run this script to let it know of your credentials. Replace the fields in brackets `<>` with the id and keys you obtained earlier.
+
+### Future runs
+
+After the first run, the script will save all of the argument so you need not provided them again in future runs.
+
 ```
-$ python src/create_credentials.py <your_app_id> <your_app_key>
-```
-5. Run this script to extract the vocabulary from Kindle into another format with which it is easier to process
-```
-$ python src/read_db.py 
-```
-6. Run this script so that it queries the Oxford Dictionary. **This could take a while**
-```
-$ python src/add_def.py
-```
-7. Run this script to create a `csv` file which can be imported into Anki
-```
-$ python src/create_anki_deck.py
+$ python python main.py 
 ```
 
 ## Exporting to Anki
 
-At this point, your file tree should look like this :
-```
-.
-├── data
-│   ├── credentials.json
-│   ├── vocab.csv
-│   ├── vocab.db
-│   └── vocab.json
-├── Readme.md
-├── requirements.txt
-└── src
-    ├── add_def.py
-    ├── create_anki_deck.py
-    ├── create_credentials.py
-    └── read_db.py
-```
-
-1. Open `vocab.csv` with Anki.
+1. Open `data/vocab.csv` with Anki.
 2. A window prompt should appear. Make sure that the card type and the field mapping should match as picture is shown. \
 ![You should have the same fields](doc/img/fields.png)
 3. CLick **Import** and you should be done.
