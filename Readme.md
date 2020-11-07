@@ -53,7 +53,8 @@ $ python python main.py --appid <your app_id> --key <you app_key> --vocab <path_
 
 ### Future runs
 
-After the first run, the script will save all of the argument so you need not provided them again in future runs.
+After the first run, the script will save all of the argument so you need not provided them again in future runs. You can modify them by
+either modifying `config.yaml` directly or providing them as an argument
 
 ```
 $ python python main.py 

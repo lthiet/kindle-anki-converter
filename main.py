@@ -10,18 +10,42 @@ import requests
 language = "en-gb"
 
 
-def get_args():
+def get_config():
+    # Check if this is a first run or not
+    first_run = True
+    try:
+        with open('data/config.yaml') as f:
+            first_run = False
+    except:
+        pass
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--appid",
+    parser.add_argument("--app_id", required=first_run,
                         help='Application ID from the Dictionnary')
-    parser.add_argument("--key",
+    parser.add_argument("--app_key", required=first_run,
                         help='Application key from the Dictionnary')
-    parser.add_argument("--vocab", required=True,
+    parser.add_argument("--vocab", required=first_run,
                         help='The absolute path to your vocab.db file')
     parser.add_argument("--clear", action='store_true',
                         help='Whether or not vocab.db should be cleared at the end')
-    result = parser.parse_args()
-    return vars(result)
+    parser.add_argument("--lang", default="en-us")
+    config = vars(parser.parse_args())
+
+    if not first_run:
+        with open('data/config.yaml', 'r') as f:
+            config_disk = yaml.safe_load(f)
+
+        # Update config
+        for k in config_disk:
+            if config[k] != None:  # TODO: check if value isn't equal to default
+                config_disk[k] = config[k]
+
+        config = config_disk
+
+    with open('data/config.yaml', 'w') as f:
+        f.write(yaml.safe_dump(config))
+
+    return config
 
 
 def read_vocab(path):
@@ -29,6 +53,7 @@ def read_vocab(path):
     Read the vocab.db file
     """
     # Create a connection with vocabulary db
+    print("/media/lam/Kindle/sytem/vocabulary/vocab.db")
     conn = sqlite3.connect(path)
     c = conn.cursor()
 
@@ -50,7 +75,7 @@ def read_vocab(path):
     return export
 
 
-def fetch_definition(word):
+def fetch_definition(word, cred):
     """
     Contact the Oxford Dictionary API and fetch a definition
     TODO: could be improved if passed a list of word?
@@ -74,34 +99,20 @@ def fetch_definition(word):
 
 
 if __name__ == "__main__":
-    # Parse the arguments
-    args = get_args()
-
-    # Check if the user provided API key
-    cred = None
-    if args['appid'] == None or args['key'] == None:
-        # The user didn't provide API key, try to read from cred.yaml
-        try:
-            with open('data/cred.yaml', 'r') as f:
-                cred = yaml.safe_load(f)
-        except:
-            traceback.print_exc()
-    else:
-        # The user provided API key, write it inside a file for future use
-        cred = {
-            "app_id": args['appid'],
-            "app_key": args['key']
-        }
-        with open('data/cred.yaml', 'w') as f:
-            f.write(yaml.safe_dump(cred))
+    # Parse the config
+    cfg = get_config()
 
     # Read the vocab database
-    vocab = read_vocab(args['vocab'])
+    vocab = read_vocab(cfg['vocab'])
 
     # Populate the definitions list
     definitions = []
     for word in vocab["stems"]:
-        definitions.append(fetch_definition(word))
+        cred = {
+            "app_id": cfg["app_id"],
+            "app_key": cfg["app_key"]
+        }
+        definitions.append(fetch_definition(word, cred))
 
     vocab["definitions"] = definitions
 
