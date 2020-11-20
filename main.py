@@ -103,12 +103,20 @@ def fetch_definition(word, cred):
         return result["results"][0]["lexicalEntries"][0]["entries"][0]["senses"][0]["definitions"][0]
 
 
+def split_vocab(vocab):
+    print(vocab)
+
+
 if __name__ == "__main__":
     # Parse the config
     cfg = get_config()
 
     # Read the vocab database
-    vocab = read_vocab(cfg['vocab'], 60)
+    vocab = read_vocab(cfg['vocab'])
+
+    # Split the vocab and write them to disk for future processing
+    split_vocab(vocab)
+    exit(0)
 
     # Populate the definitions list
     definitions = []
