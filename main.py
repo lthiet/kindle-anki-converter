@@ -48,21 +48,26 @@ def get_config():
     return config
 
 
-def read_vocab(path):
+def read_vocab(path, n=None):
     """
     Read the vocab.db file
+    n : maximum number of files to read
     """
     # Create a connection with vocabulary db
-    print("/media/lam/Kindle/sytem/vocabulary/vocab.db")
     conn = sqlite3.connect(path)
     c = conn.cursor()
 
     # Select appropriate data
-    c.execute("""
+    c.execute(f"""
     SELECT words.stem, lookups.usage
         FROM words
         JOIN lookups
         ON words.id = lookups.word_key
+        ORDER BY words.stem
+        {
+            "" if n == None
+            else f"LIMIT {n} "
+        }
     """)
 
     # Export to JSON
@@ -82,7 +87,7 @@ def fetch_definition(word, cred):
     """
     url = "https://od-api.oxforddictionaries.com:443/api/v2/entries/" + \
         language + "/" + word.lower()
-    result = requests.get(url, headers=cred).json()
+    result = requests.get(url, headers=cred)
 
     # Check if the API has returned an error
     try:
@@ -103,7 +108,7 @@ if __name__ == "__main__":
     cfg = get_config()
 
     # Read the vocab database
-    vocab = read_vocab(cfg['vocab'])
+    vocab = read_vocab(cfg['vocab'], 60)
 
     # Populate the definitions list
     definitions = []
