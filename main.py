@@ -1,9 +1,13 @@
+import trace
+import traceback
 import argparse
 import yaml
 import sqlite3
 import pandas
 import requests
 import math
+import os
+import json
 
 # Global parameters
 # TODO: put this in a config file instead
@@ -29,6 +33,8 @@ def get_config():
     parser.add_argument("--clear", action='store_true',
                         help='Whether or not vocab.db should be cleared at the end')
     parser.add_argument("--lang", default="en-us")
+    parser.add_argument("--skip", action='store_true',
+                        help='Whether or not to skip reading from vocab DB')
     config = vars(parser.parse_args())
 
     if not first_run:
@@ -36,7 +42,7 @@ def get_config():
             config_disk = yaml.safe_load(f)
 
         # Update config
-        for k in config_disk:
+        for k in config:
             if config[k] != None:  # TODO: check if value isn't equal to default
                 config_disk[k] = config[k]
 
@@ -59,10 +65,11 @@ def read_vocab(path, n=None):
 
     # Select appropriate data
     c.execute(f"""
-    SELECT words.stem, lookups.usage
+    SELECT DISTINCT words.stem, max(lookups.usage)
         FROM words
         JOIN lookups
         ON words.id = lookups.word_key
+        GROUP BY words.stem
         ORDER BY words.stem
         {
             "" if n == None
@@ -80,27 +87,26 @@ def read_vocab(path, n=None):
     return export
 
 
-def fetch_definition(word, cred):
+def fetch_definition(word, usage, cred):
     """
     Contact the Oxford Dictionary API and fetch a definition
     TODO: could be improved if passed a list of word?
     """
     url = "https://od-api.oxforddictionaries.com:443/api/v2/entries/" + \
         language + "/" + word.lower()
-    result = requests.get(url, headers=cred)
+    result = requests.get(url, headers=cred).json()
 
-    # Check if the API has returned an error
     try:
-        result['error']
-        res = input(f"Definition not found for ->{word}<-, input your own:\n")
-        return res
-    except KeyError:
         # TODO: look into the documentation of Oxford API to understand the
         # json structure
         # TODO: for now only the first definition is fetched, but it is a
         # possibility that there are others, so it should be accounted for
         # in a future update
         return result["results"][0]["lexicalEntries"][0]["entries"][0]["senses"][0]["definitions"][0]
+    except:
+        print(f'usage: {usage}')
+        res = input(f"Definition not found for ->{word}<-, input your own:\n")
+        return res
 
 
 def split_vocab(vocab, split=30):
@@ -114,30 +120,52 @@ def split_vocab(vocab, split=30):
             "usages": vocab['usages'][i*split:min(n, (i+1)*split)]
 
         }
-        pandas.DataFrame.from_dict(partition).to_csv(f'data/part{i}.csv')
+        with open(f'data/part{i}.json', 'w') as f:
+            json.dump(partition, f)
+
+
+def populate_def(entry):
+    # Populate the definitions list
+    definitions = []
+    for word, usage in zip(entry["stems"], entry["usages"]):
+        cred = {
+            "app_id": cfg["app_id"],
+            "app_key": cfg["app_key"]
+        }
+        definitions.append(fetch_definition(word, usage, cred))
+
+    entry["definitions"] = definitions
+    return entry
+
+
+def merge_csv():
+    with open('data/vocab.csv', 'w') as output:
+        for file in os.listdir("data"):
+            if file.endswith(".csv"):
+                with open(os.path.join("data", file)) as input:
+                    output.write(input.read())
 
 
 if __name__ == "__main__":
     # Parse the config
     cfg = get_config()
 
-    # Read the vocab database
-    vocab = read_vocab(cfg['vocab'])
+    if not cfg['skip']:
+        # Read the vocab database
+        vocab = read_vocab(cfg['vocab'])
 
-    # Split the vocab and write them to disk for future processing
-    split_vocab(vocab)
-    exit(0)
+        # Split the vocab and write them to disk for future processing
+        split_vocab(vocab)
 
-    # Populate the definitions list
-    definitions = []
-    for word in vocab["stems"]:
-        cred = {
-            "app_id": cfg["app_id"],
-            "app_key": cfg["app_key"]
-        }
-        definitions.append(fetch_definition(word, cred))
+    # Query for each partition of the vocab and write it to disk
+    for file in os.listdir("data"):
+        if file.endswith(".json"):
+            with open(os.path.join("data", file)) as f:
+                entry = json.loads(f.read())
+                entry = populate_def(entry)
 
-    vocab["definitions"] = definitions
+                # Write to disk the anki deck
+                pandas.DataFrame.from_dict(entry).to_csv(
+                    f'data/{file}vocab.csv')
 
-    # Write to disk the anki deck
-    pandas.DataFrame.from_dict(vocab).to_csv('data/vocab.csv')
+    merge_csv()
