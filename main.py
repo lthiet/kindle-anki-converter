@@ -2,8 +2,8 @@ import argparse
 import yaml
 import sqlite3
 import pandas
-import traceback
 import requests
+import math
 
 # Global parameters
 # TODO: put this in a config file instead
@@ -103,8 +103,18 @@ def fetch_definition(word, cred):
         return result["results"][0]["lexicalEntries"][0]["entries"][0]["senses"][0]["definitions"][0]
 
 
-def split_vocab(vocab):
-    print(vocab)
+def split_vocab(vocab, split=30):
+    n = len(vocab['stems'])
+    assert n == len(vocab['usages'])
+    nb_split = math.ceil(n / split)
+
+    for i in range(nb_split):
+        partition = {
+            "stems": vocab['stems'][i*split:min(n, (i+1)*split)],
+            "usages": vocab['usages'][i*split:min(n, (i+1)*split)]
+
+        }
+        pandas.DataFrame.from_dict(partition).to_csv(f'data/part{i}.csv')
 
 
 if __name__ == "__main__":
