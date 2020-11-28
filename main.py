@@ -9,9 +9,13 @@ import math
 import os
 import json
 
-# Global parameters
-# TODO: put this in a config file instead
-language = "en-gb"
+
+def lang_code(c):
+    language_code_map = {
+        "en": "en-us",
+        "de": "de"
+    }
+    return language_code_map[c]
 
 
 def get_config():
@@ -65,7 +69,7 @@ def read_vocab(path, n=None):
 
     # Select appropriate data
     c.execute(f"""
-    SELECT DISTINCT words.stem, max(lookups.usage)
+    SELECT DISTINCT words.stem, max(lookups.usage), lang
         FROM words
         JOIN lookups
         ON words.id = lookups.word_key
@@ -78,22 +82,23 @@ def read_vocab(path, n=None):
     """)
 
     # Export to JSON
-    export = {"stems": [], "usages": []}
+    export = {"stems": [], "usages": [], "langs": []}
     db = c.fetchall()
     for row in db:
         export["stems"].append(row[0])
         export["usages"].append(row[1])
+        export["langs"].append(row[2])
 
     return export
 
 
-def fetch_definition(word, usage, cred):
+def fetch_definition(word, usage, lang, cred):
     """
     Contact the Oxford Dictionary API and fetch a definition
     TODO: could be improved if passed a list of word?
     """
     url = "https://od-api.oxforddictionaries.com:443/api/v2/entries/" + \
-        language + "/" + word.lower()
+        lang_code(lang) + "/" + word.lower()
     result = requests.get(url, headers=cred).json()
 
     try:
@@ -112,14 +117,16 @@ def fetch_definition(word, usage, cred):
 def split_vocab(vocab, split=30):
     n = len(vocab['stems'])
     assert n == len(vocab['usages'])
+    assert n == len(vocab['langs'])
     nb_split = math.ceil(n / split)
 
     for i in range(nb_split):
         partition = {
             "stems": vocab['stems'][i*split:min(n, (i+1)*split)],
-            "usages": vocab['usages'][i*split:min(n, (i+1)*split)]
-
+            "usages": vocab['usages'][i*split:min(n, (i+1)*split)],
+            "langs": vocab['langs'][i*split:min(n, (i+1)*split)]
         }
+
         with open(f'data/part{i}.json', 'w') as f:
             json.dump(partition, f)
 
@@ -127,12 +134,12 @@ def split_vocab(vocab, split=30):
 def populate_def(entry):
     # Populate the definitions list
     definitions = []
-    for word, usage in zip(entry["stems"], entry["usages"]):
+    for word, usage, lang in zip(entry["stems"], entry["usages"], entry["langs"]):
         cred = {
             "app_id": cfg["app_id"],
             "app_key": cfg["app_key"]
         }
-        definitions.append(fetch_definition(word, usage, cred))
+        definitions.append(fetch_definition(word, usage, lang, cred))
 
     entry["definitions"] = definitions
     return entry
