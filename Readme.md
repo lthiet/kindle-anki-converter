@@ -5,7 +5,7 @@ a **Anki back and reverse cards deck**.
 
 # Currently Supported Features
 
-- the supported languages is English.
+- languages that are not English will fetch the translation to english and not their direct definition
 - The API used in this project is Oxford Dictionary.
 - Only the fields of definitions is supported.
 
